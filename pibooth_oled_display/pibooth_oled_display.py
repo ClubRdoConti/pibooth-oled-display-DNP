@@ -9,6 +9,7 @@ import shutil
 import datetime
 import threading
 import pkg_resources
+import subprocess
 from PIL import Image, ImageDraw, ImageFont, ImageSequence
 from luma.core.sprite_system import framerate_regulator
 from luma.core.interface.serial import i2c, spi
@@ -451,6 +452,15 @@ def center_image(app, image):
     output_image.paste(image, (x, y))
     return output_image
 
+def get_remain_from_dmp():
+    result = subprocess.run("ipptool -tv ipp://localhost:631/printers/Dai_Nippon_Printing_DP-DS620 get-printer-attributes.test", shell=True, text=True, capture_output=True)
+    for line in result.stdout.splitlines():
+        if " native prints remaining" in line:
+            part = line.split(" native prints remaining")[0].strip()
+            remaining = part.split("= ")[1].strip()
+            break
+    return remaining
+     
 def draw_text(app, counter, right, down, text, font, color, center=False):
     x = counter.split()
     final_text = text
@@ -462,7 +472,8 @@ def draw_text(app, counter, right, down, text, font, color, center=False):
     elif "Forgotten" in x:
         final_text = text + ('%s' % app.count.forgotten)
     elif "Remaining_Duplicates" in x:
-        final_text = text + ('%s' % app.count.remaining_duplicates)
+        remain_dmp = get_remain_from_dmp()
+        final_text = text + ('%s' % remain_dmp)
     elif "Empty" in x:
         final_text = ""
     elif "Date-Time" in x:
